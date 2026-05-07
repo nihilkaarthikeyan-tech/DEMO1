@@ -158,12 +158,27 @@ function SuitVisual({ config, size = 240 }) {
         {/* Cuffs */}
         <rect x="20" y="218" width="20" height="12" rx="1" fill="#E8E0D0" opacity="0.6" />
         <rect x="200" y="218" width="20" height="12" rx="1" fill="#E8E0D0" opacity="0.6" />
+        {/* Trousers — rendered behind jacket */}
+        {(() => {
+          const slim = config.pantsFit === "slim";
+          const lx1 = slim ? 74 : 68, lx2 = slim ? 112 : 116;
+          const rx1 = slim ? 128 : 124, rx2 = slim ? 166 : 172;
+          return (<>
+            <rect x={lx1} y="254" width={rx2 - lx1} height="11" fill={color} style={{ filter: "brightness(0.7)" }} />
+            <path d={`M${lx1},265 L${lx1 - 3},372 L${lx2},372 L${lx2 + 2},265 Z`} fill={color} opacity="0.82" />
+            <path d={`M${rx1},265 L${rx1 - 2},372 L${rx2 + 3},372 L${rx2},265 Z`} fill={color} opacity="0.82" />
+            <line x1={lx1 + 18} y1="265" x2={lx1 + 16} y2="372" stroke="rgba(255,255,255,0.04)" strokeWidth="0.6" />
+            <line x1={rx2 - 18} y1="265" x2={rx2 - 16} y2="372" stroke="rgba(255,255,255,0.04)" strokeWidth="0.6" />
+            <path d={`M${lx1},265 L${lx1 - 3},372 L${lx2},372 L${lx2 + 2},265 Z`} fill="url(#shim)" opacity="0.7" />
+            <path d={`M${rx1},265 L${rx1 - 2},372 L${rx2 + 3},372 L${rx2},265 Z`} fill="url(#shim)" opacity="0.7" />
+          </>);
+        })()}
         {/* Body */}
-        <path d={isD ? "M65,92 L50,340 L190,340 L175,92 L148,74 L132,88 L120,68 L108,88 L92,74 Z" : "M68,92 L52,340 L188,340 L172,92 L146,74 L130,88 L120,66 L110,88 L94,74 Z"} fill="url(#sg)" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+        <path d={isD ? "M65,92 L57,260 L183,260 L175,92 L148,74 L132,88 L120,68 L108,88 L92,74 Z" : "M68,92 L60,260 L180,260 L172,92 L146,74 L130,88 L120,66 L110,88 L94,74 Z"} fill="url(#sg)" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
         {/* Shimmer overlay */}
-        <path d={isD ? "M65,92 L50,340 L190,340 L175,92 L148,74 L132,88 L120,68 L108,88 L92,74 Z" : "M68,92 L52,340 L188,340 L172,92 L146,74 L130,88 L120,66 L110,88 L94,74 Z"} fill="url(#shim)" />
+        <path d={isD ? "M65,92 L57,260 L183,260 L175,92 L148,74 L132,88 L120,68 L108,88 L92,74 Z" : "M68,92 L60,260 L180,260 L172,92 L146,74 L130,88 L120,66 L110,88 L94,74 Z"} fill="url(#shim)" />
         {/* Center */}
-        <line x1="120" y1="130" x2="120" y2="340" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+        <line x1="120" y1="130" x2="120" y2="260" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
         {/* Lapels */}
         {isD ? (<>
           <path d="M92,74 L108,88 L85,168 L62,112 Z" fill="url(#lg)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
@@ -194,10 +209,10 @@ function SuitVisual({ config, size = 240 }) {
         <path d="M72,200 L98,198 L97,204 L71,206 Z" fill={color} stroke="rgba(255,255,255,0.03)" strokeWidth="0.3" style={{ filter: "brightness(0.88)" }} />
         <path d="M142,198 L168,200 L169,206 L143,204 Z" fill={color} stroke="rgba(255,255,255,0.03)" strokeWidth="0.3" style={{ filter: "brightness(0.88)" }} />
         {/* Stitching */}
-        <path d={isD ? "M85,168 L78,340" : "M90,155 L82,340"} stroke="rgba(255,255,255,0.02)" strokeWidth="0.4" strokeDasharray="4 3" />
-        <path d={isD ? "M155,168 L162,340" : "M150,155 L158,340"} stroke="rgba(255,255,255,0.02)" strokeWidth="0.4" strokeDasharray="4 3" />
+        <path d={isD ? "M85,168 L79,260" : "M90,155 L83,260"} stroke="rgba(255,255,255,0.02)" strokeWidth="0.4" strokeDasharray="4 3" />
+        <path d={isD ? "M155,168 L161,260" : "M150,155 L157,260"} stroke="rgba(255,255,255,0.02)" strokeWidth="0.4" strokeDasharray="4 3" />
         {/* Initials */}
-        {config.initials && <text x="120" y="290" textAnchor="middle" fill={T.gold} fontSize="11" fontFamily="Georgia,serif" opacity="0.55" fontStyle="italic" letterSpacing="2">{config.initials}</text>}
+        {config.initials && <text x="120" y="230" textAnchor="middle" fill={T.gold} fontSize="11" fontFamily="Georgia,serif" opacity="0.55" fontStyle="italic" letterSpacing="2">{config.initials}</text>}
       </svg>
     </div>
   );
