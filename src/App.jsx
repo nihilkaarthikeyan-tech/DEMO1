@@ -60,6 +60,16 @@ const MEASURE_FIELDS = [
 const DEMO_CONFIG = { suitType: "classic", material: "premium", design: "midnight", buttonType: "metal", buttonColor: "gold", initials: "", pantsFit: "slim", pantsStyle: "classic" };
 
 /* ═══════════ UTILS ═══════════ */
+function useWindowWidth() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return w;
+}
+
 function Fade({ children, delay = 0, y = 20, style = {} }) {
   const [v, setV] = useState(false);
   useEffect(() => { const t = setTimeout(() => setV(true), delay); return () => clearTimeout(t); }, [delay]);
@@ -100,48 +110,100 @@ function PageTransition({ children }) {
 /* ═══════════ NAV ═══════════ */
 function Nav({ current, onNav }) {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const w = useWindowWidth();
+  const mobile = w < 768;
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", fn); return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  useEffect(() => { setMenuOpen(false); }, [current]);
 
   const isHome = current === "home";
   const navBg = isHome
     ? (scrolled ? "rgba(14,35,24,0.97)" : "transparent")
     : "rgba(14,35,24,0.98)";
 
+  const navLinks = [["Collection", "section-collection"], ["Process", "section-bespoke"], ["About", "section-about"]];
+
   return (
-    <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, height: 60,
-      background: navBg,
-      backdropFilter: scrolled || !isHome ? "blur(20px)" : "none",
-      borderBottom: `1px solid ${scrolled || !isHome ? "rgba(255,255,255,0.08)" : "transparent"}`,
-      padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between",
-      transition: "all 0.4s ease",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => onNav("home")}>
-        <div style={{ width: 32, height: 32, border: `1.5px solid ${T.brass}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia,serif", fontSize: 16, color: T.brass, fontWeight: 700, fontStyle: "italic" }}>K</div>
-        <span style={{ fontFamily: "Georgia,serif", fontSize: 15, color: "#F0EAE0", fontWeight: 500, letterSpacing: 3 }}>KINGSMAN</span>
-      </div>
-      {isHome ? (
-        <div style={{ display: "flex", gap: 36, alignItems: "center" }}>
-          {[["Collection", "section-collection"], ["Process", "section-bespoke"], ["About", "section-about"]].map(([label, id]) => (
-            <span key={label} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
-              style={{ fontSize: 10, color: "rgba(240,234,224,0.5)", letterSpacing: 2.5, textTransform: "uppercase", cursor: "pointer", transition: "color 0.2s" }}
-              onMouseEnter={e => e.target.style.color = "#F0EAE0"} onMouseLeave={e => e.target.style.color = "rgba(240,234,224,0.5)"}>{label}</span>
+    <>
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, height: 60,
+        background: menuOpen ? "rgba(14,35,24,0.99)" : navBg,
+        backdropFilter: scrolled || !isHome || menuOpen ? "blur(20px)" : "none",
+        borderBottom: `1px solid ${scrolled || !isHome || menuOpen ? "rgba(255,255,255,0.08)" : "transparent"}`,
+        padding: mobile ? "0 16px" : "0 40px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        transition: "all 0.4s ease",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => onNav("home")}>
+          <div style={{ width: 32, height: 32, border: `1.5px solid ${T.brass}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia,serif", fontSize: 16, color: T.brass, fontWeight: 700, fontStyle: "italic" }}>K</div>
+          <span style={{ fontFamily: "Georgia,serif", fontSize: 15, color: "#F0EAE0", fontWeight: 500, letterSpacing: 3 }}>KINGSMAN</span>
+        </div>
+
+        {isHome ? (
+          mobile ? (
+            /* Mobile: hamburger */
+            <button onClick={() => setMenuOpen(o => !o)}
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  width: 22, height: 1.5, background: "#F0EAE0",
+                  transition: "all 0.25s",
+                  transform: menuOpen
+                    ? i === 0 ? "rotate(45deg) translate(4.5px, 4.5px)" : i === 2 ? "rotate(-45deg) translate(4.5px, -4.5px)" : "opacity 0"
+                    : "none",
+                  opacity: menuOpen && i === 1 ? 0 : 1,
+                }} />
+              ))}
+            </button>
+          ) : (
+            /* Desktop: nav links */
+            <div style={{ display: "flex", gap: 36, alignItems: "center" }}>
+              {navLinks.map(([label, id]) => (
+                <span key={label} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+                  style={{ fontSize: 10, color: "rgba(240,234,224,0.5)", letterSpacing: 2.5, textTransform: "uppercase", cursor: "pointer", transition: "color 0.2s" }}
+                  onMouseEnter={e => e.target.style.color = "#F0EAE0"} onMouseLeave={e => e.target.style.color = "rgba(240,234,224,0.5)"}>{label}</span>
+              ))}
+              <button onClick={() => onNav("configure")} style={{ background: T.brass, border: "none", color: T.forest, padding: "9px 22px", fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = T.brassLight}
+                onMouseLeave={e => e.currentTarget.style.background = T.brass}>
+                Bespoke
+              </button>
+            </div>
+          )
+        ) : (
+          <span style={{ fontSize: 10, letterSpacing: 3, color: "rgba(240,234,224,0.5)", textTransform: "uppercase" }}>
+            {current === "configure" ? "Suit Designer" : current === "measure" ? "Measurements" : "Checkout"}
+          </span>
+        )}
+      </nav>
+
+      {/* Mobile dropdown menu */}
+      {mobile && isHome && menuOpen && (
+        <div style={{
+          position: "fixed", top: 60, left: 0, right: 0, zIndex: 99,
+          background: "rgba(14,35,24,0.99)", backdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "20px 24px 28px", display: "flex", flexDirection: "column", gap: 0,
+        }}>
+          {navLinks.map(([label, id]) => (
+            <div key={label}
+              onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); }}
+              style={{ padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", fontSize: 11, color: "rgba(240,234,224,0.7)", letterSpacing: 3, textTransform: "uppercase", cursor: "pointer" }}>
+              {label}
+            </div>
           ))}
-          <button onClick={() => onNav("configure")} style={{ background: T.brass, border: "none", color: T.forest, padding: "9px 22px", fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}
-            onMouseEnter={e => e.currentTarget.style.background = T.brassLight}
-            onMouseLeave={e => e.currentTarget.style.background = T.brass}>
-            Bespoke
+          <button onClick={() => { onNav("configure"); setMenuOpen(false); }}
+            style={{ background: T.brass, border: "none", color: T.forest, padding: "14px", fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", marginTop: 20, width: "100%" }}>
+            Start Designing
           </button>
         </div>
-      ) : (
-        <span style={{ fontSize: 10, letterSpacing: 3, color: "rgba(240,234,224,0.5)", textTransform: "uppercase" }}>
-          {current === "configure" ? "Suit Designer" : current === "measure" ? "Measurements" : "Checkout"}
-        </span>
       )}
-    </nav>
+    </>
   );
 }
 
@@ -265,6 +327,9 @@ function BtnGhost({ children, onClick }) {
 
 /* ═══════════ HOME PAGE ═══════════ */
 function HomePage({ onStart }) {
+  const w = useWindowWidth();
+  const mobile = w < 768;
+
   return (
     <div style={{ background: T.parchment }}>
 
@@ -272,30 +337,35 @@ function HomePage({ onStart }) {
       <section style={{ minHeight: "100vh", display: "flex", flexWrap: "wrap" }}>
 
         {/* Left — Text */}
-        <div style={{ flex: "1 1 480px", display: "flex", flexDirection: "column", justifyContent: "center", padding: "100px 64px 80px", background: T.parchment, position: "relative" }}>
+        <div style={{
+          flex: "1 1 280px",
+          display: "flex", flexDirection: "column", justifyContent: "center",
+          padding: mobile ? "90px 24px 60px" : "100px 64px 80px",
+          background: T.parchment, position: "relative",
+        }}>
           {/* Top-left corner mark */}
-          <div style={{ position: "absolute", top: 80, left: 40, width: 40, height: 40, borderTop: `1px solid ${T.border}`, borderLeft: `1px solid ${T.border}` }} />
+          {!mobile && <div style={{ position: "absolute", top: 80, left: 40, width: 40, height: 40, borderTop: `1px solid ${T.border}`, borderLeft: `1px solid ${T.border}` }} />}
 
           <Fade delay={200}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 40 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
               <div style={{ width: 32, height: 1, background: T.brass }} />
               <span style={{ fontSize: 9, color: T.brass, letterSpacing: 5, textTransform: "uppercase", fontWeight: 700 }}>Est. 2019 · London</span>
             </div>
           </Fade>
 
           <Fade delay={380}>
-            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(44px,6vw,80px)", fontWeight: 400, color: T.ink, lineHeight: 1.0, marginBottom: 0 }}>
+            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(40px,8vw,80px)", fontWeight: 400, color: T.ink, lineHeight: 1.0, marginBottom: 0 }}>
               Dressed
             </h1>
           </Fade>
           <Fade delay={480}>
-            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(44px,6vw,80px)", fontWeight: 700, color: T.forest, lineHeight: 1.0, fontStyle: "italic", marginBottom: 8 }}>
+            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(40px,8vw,80px)", fontWeight: 700, color: T.forest, lineHeight: 1.0, fontStyle: "italic", marginBottom: 8 }}>
               to Conquer.
             </h1>
           </Fade>
 
           <Fade delay={600}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "28px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "24px 0" }}>
               <div style={{ flex: 1, height: 1, background: T.border }} />
               <div style={{ width: 6, height: 6, background: T.brass, transform: "rotate(45deg)" }} />
               <div style={{ flex: 1, height: 1, background: T.border }} />
@@ -303,7 +373,7 @@ function HomePage({ onStart }) {
           </Fade>
 
           <Fade delay={720}>
-            <p style={{ fontSize: 15, color: T.text, maxWidth: 380, lineHeight: 2, fontWeight: 300, marginBottom: 44 }}>
+            <p style={{ fontSize: mobile ? 14 : 15, color: T.text, maxWidth: 380, lineHeight: 2, fontWeight: 300, marginBottom: 36 }}>
               The finest bespoke tailoring, designed by you. Italian wool, hand-stitched to your exact measurements. Delivered in 14 days.
             </p>
           </Fade>
@@ -311,13 +381,13 @@ function HomePage({ onStart }) {
           <Fade delay={860}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={onStart}
-                style={{ background: T.forest, border: "none", color: "#F0EAE0", padding: "16px 40px", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" }}
+                style={{ background: T.forest, border: "none", color: "#F0EAE0", padding: mobile ? "14px 28px" : "16px 40px", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s", flex: mobile ? "1 1 auto" : "none" }}
                 onMouseEnter={e => e.currentTarget.style.background = T.forestLight}
                 onMouseLeave={e => e.currentTarget.style.background = T.forest}>
                 Start Designing
               </button>
               <button onClick={() => document.getElementById("section-bespoke")?.scrollIntoView({ behavior: "smooth" })}
-                style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.text, padding: "16px 32px", fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s" }}
+                style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.text, padding: mobile ? "14px 20px" : "16px 32px", fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s", flex: mobile ? "1 1 auto" : "none" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = T.forest; e.currentTarget.style.color = T.forest; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.text; }}>
                 How It Works
@@ -326,10 +396,10 @@ function HomePage({ onStart }) {
           </Fade>
 
           <Fade delay={1050}>
-            <div style={{ marginTop: 56, paddingTop: 40, borderTop: `1px solid ${T.border}`, display: "flex", gap: 32 }}>
+            <div style={{ marginTop: 44, paddingTop: 32, borderTop: `1px solid ${T.border}`, display: "flex", gap: mobile ? 20 : 32, flexWrap: "wrap" }}>
               {[["150+", "Fabrics"], ["14", "Day Delivery"], ["100%", "Fit Guaranteed"]].map(([n, l]) => (
                 <div key={l}>
-                  <div style={{ fontFamily: "Georgia,serif", fontSize: 22, color: T.forest, fontWeight: 600 }}>{n}</div>
+                  <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 18 : 22, color: T.forest, fontWeight: 600 }}>{n}</div>
                   <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 2 }}>{l}</div>
                 </div>
               ))}
@@ -338,32 +408,42 @@ function HomePage({ onStart }) {
         </div>
 
         {/* Right — Visual */}
-        <div style={{ flex: "1 1 420px", minHeight: 520, background: T.forest, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{
+          flex: "1 1 280px",
+          minHeight: mobile ? 340 : 520,
+          background: T.forest, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden",
+        }}>
           {/* Pattern overlay */}
           <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(176,124,40,0.06) 1px, transparent 1px)", backgroundSize: "28px 28px", pointerEvents: "none" }} />
           {/* Glow */}
           <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translateX(-50%)", width: 300, height: 300, background: "radial-gradient(ellipse, rgba(176,124,40,0.15), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
           {/* Corner lines */}
-          <div style={{ position: "absolute", top: 40, left: 40, width: 50, height: 50, borderTop: "1px solid rgba(176,124,40,0.3)", borderLeft: "1px solid rgba(176,124,40,0.3)" }} />
-          <div style={{ position: "absolute", bottom: 40, right: 40, width: 50, height: 50, borderBottom: "1px solid rgba(176,124,40,0.3)", borderRight: "1px solid rgba(176,124,40,0.3)" }} />
+          {!mobile && <>
+            <div style={{ position: "absolute", top: 40, left: 40, width: 50, height: 50, borderTop: "1px solid rgba(176,124,40,0.3)", borderLeft: "1px solid rgba(176,124,40,0.3)" }} />
+            <div style={{ position: "absolute", bottom: 40, right: 40, width: 50, height: 50, borderBottom: "1px solid rgba(176,124,40,0.3)", borderRight: "1px solid rgba(176,124,40,0.3)" }} />
+          </>}
 
           <Fade delay={600} style={{ position: "relative", zIndex: 1 }}>
-            <SuitVisual config={DEMO_CONFIG} size={280} />
+            <SuitVisual config={DEMO_CONFIG} size={mobile ? 200 : 280} />
           </Fade>
-          <Fade delay={900} style={{ position: "relative", zIndex: 1, textAlign: "center", marginTop: 24 }}>
+          <Fade delay={900} style={{ position: "relative", zIndex: 1, textAlign: "center", marginTop: 16 }}>
             <div style={{ fontSize: 9, color: "rgba(176,124,40,0.7)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 6 }}>Live Preview</div>
-            <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: "rgba(240,234,224,0.5)", fontStyle: "italic" }}>Configure yours →</div>
+            {!mobile && <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: "rgba(240,234,224,0.5)", fontStyle: "italic" }}>Configure yours →</div>}
           </Fade>
         </div>
       </section>
 
       {/* ── STATS BAND ── */}
-      <section id="section-collection" style={{ background: T.forestMid, padding: "56px 24px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 0 }}>
+      <section id="section-collection" style={{ background: T.forestMid, padding: mobile ? "40px 16px" : "56px 24px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(auto-fit, minmax(160px, 1fr))", gap: 0 }}>
           {[{ end: 150, suffix: "+", l: "Fabric Options" }, { end: 6, suffix: "", l: "Design Steps" }, { end: 14, suffix: "", l: "Day Delivery" }, { end: 100, suffix: "%", l: "Fit Guarantee" }].map((f, i) => (
             <Fade key={i} delay={i * 120}>
-              <div style={{ textAlign: "center", padding: "16px 8px", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-                <div style={{ fontFamily: "Georgia,serif", fontSize: 44, color: T.brass, fontWeight: 400, lineHeight: 1 }}>
+              <div style={{
+                textAlign: "center", padding: mobile ? "20px 8px" : "16px 8px",
+                borderRight: mobile ? (i % 2 === 0 ? "1px solid rgba(255,255,255,0.06)" : "none") : (i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none"),
+                borderBottom: mobile && i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
+              }}>
+                <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 36 : 44, color: T.brass, fontWeight: 400, lineHeight: 1 }}>
                   <CountUp end={f.end} suffix={f.suffix} />
                 </div>
                 <div style={{ fontSize: 10, color: "rgba(240,234,224,0.45)", letterSpacing: 2, textTransform: "uppercase", marginTop: 8, fontWeight: 600 }}>{f.l}</div>
@@ -374,20 +454,20 @@ function HomePage({ onStart }) {
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section id="section-bespoke" style={{ padding: "96px 40px", background: T.card }}>
+      <section id="section-bespoke" style={{ padding: mobile ? "60px 20px" : "96px 40px", background: T.card }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <Fade>
-            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 64 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: mobile ? 40 : 64 }}>
               <div style={{ height: 1, flex: 1, background: T.border }} />
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 9, color: T.brass, letterSpacing: 5, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>The Process</div>
-                <h2 style={{ fontFamily: "Georgia,serif", fontSize: 38, color: T.ink, fontWeight: 400 }}>How It <em style={{ color: T.forest, fontStyle: "italic" }}>Works</em></h2>
+                <h2 style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 28 : 38, color: T.ink, fontWeight: 400 }}>How It <em style={{ color: T.forest, fontStyle: "italic" }}>Works</em></h2>
               </div>
               <div style={{ height: 1, flex: 1, background: T.border }} />
             </div>
           </Fade>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 0, position: "relative" }}>
+          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: 0 }}>
             {[
               { n: "01", t: "Design", d: "Choose your silhouette, fabric, colour, buttons, and monogram across 6 guided steps." },
               { n: "02", t: "Measure", d: "Our smart estimator pre-fills your measurements. Fine-tune with a tape for perfection." },
@@ -395,7 +475,13 @@ function HomePage({ onStart }) {
               { n: "04", t: "Receive", d: "Your bespoke suit arrives in 14 days. Perfect fit — or we remake it free." },
             ].map((s, i) => (
               <Fade key={i} delay={200 + i * 140}>
-                <div style={{ padding: "36px 32px", borderRight: i < 3 ? `1px solid ${T.border}` : "none", borderTop: `3px solid ${i === 0 ? T.brass : "transparent"}`, transition: "border-top-color 0.3s", position: "relative" }}
+                <div style={{
+                  padding: mobile ? "28px 20px" : "36px 32px",
+                  borderRight: !mobile && i < 3 ? `1px solid ${T.border}` : "none",
+                  borderBottom: mobile && i < 3 ? `1px solid ${T.border}` : "none",
+                  borderTop: `3px solid ${i === 0 ? T.brass : "transparent"}`,
+                  transition: "border-top-color 0.3s", position: "relative",
+                }}
                   onMouseEnter={e => e.currentTarget.style.borderTopColor = T.brass}
                   onMouseLeave={e => { if (i !== 0) e.currentTarget.style.borderTopColor = "transparent"; }}>
                   <div style={{ fontFamily: "Georgia,serif", fontSize: 56, color: T.forest, opacity: 0.06, fontWeight: 700, lineHeight: 1, marginBottom: 20 }}>{s.n}</div>
@@ -409,12 +495,12 @@ function HomePage({ onStart }) {
       </section>
 
       {/* ── MATERIALS HIGHLIGHT ── */}
-      <section style={{ padding: "80px 40px", background: T.parchmentDeep }}>
+      <section style={{ padding: mobile ? "48px 20px" : "80px 40px", background: T.parchmentDeep }}>
         <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexWrap: "wrap", gap: 2, alignItems: "stretch" }}>
-          <Fade style={{ flex: "1 1 300px" }}>
-            <div style={{ background: T.forest, padding: "48px 40px", height: "100%" }}>
+          <Fade style={{ flex: "1 1 280px" }}>
+            <div style={{ background: T.forest, padding: mobile ? "32px 24px" : "48px 40px", height: "100%" }}>
               <div style={{ fontSize: 9, color: "rgba(176,124,40,0.7)", letterSpacing: 5, textTransform: "uppercase", fontWeight: 700, marginBottom: 20 }}>Our Fabrics</div>
-              <h3 style={{ fontFamily: "Georgia,serif", fontSize: 28, color: "#F0EAE0", fontWeight: 400, lineHeight: 1.3, marginBottom: 20 }}>Italian Wool<br /><em>Sourced from the Finest Mills</em></h3>
+              <h3 style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 22 : 28, color: "#F0EAE0", fontWeight: 400, lineHeight: 1.3, marginBottom: 20 }}>Italian Wool<br /><em>Sourced from the Finest Mills</em></h3>
               <p style={{ fontSize: 13, color: "rgba(240,234,224,0.55)", lineHeight: 1.9 }}>Every Kingsman suit begins with Super 130s Italian wool from Vitale Barberis Canonico — the same mill trusted by the world's greatest tailors for over three centuries.</p>
             </div>
           </Fade>
@@ -422,8 +508,8 @@ function HomePage({ onStart }) {
             { label: "Smart Collection", price: "$379", desc: "Wrinkle-resistant wool blend for the gentleman who moves." },
             { label: "Premium Collection", price: "$499", desc: "Super 130s Italian wool. Uncompromising luxury." },
           ].map((m, i) => (
-            <Fade key={i} delay={200 + i * 150} style={{ flex: "1 1 200px" }}>
-              <div style={{ background: T.card, padding: "40px 32px", borderTop: `3px solid ${i === 1 ? T.brass : T.border}`, height: "100%" }}>
+            <Fade key={i} delay={200 + i * 150} style={{ flex: "1 1 180px" }}>
+              <div style={{ background: T.card, padding: mobile ? "28px 20px" : "40px 32px", borderTop: `3px solid ${i === 1 ? T.brass : T.border}`, height: "100%" }}>
                 <div style={{ fontFamily: "Georgia,serif", fontSize: 26, color: T.brass, fontWeight: 500, marginBottom: 8 }}>{m.price}</div>
                 <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: T.ink, fontWeight: 600, marginBottom: 12 }}>{m.label}</div>
                 <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.85 }}>{m.desc}</div>
@@ -434,13 +520,15 @@ function HomePage({ onStart }) {
       </section>
 
       {/* ── QUOTE ── */}
-      <section id="section-about" style={{ background: T.forest, padding: "96px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontFamily: "Georgia,serif", fontSize: 280, color: "rgba(176,124,40,0.05)", lineHeight: 1, pointerEvents: "none", userSelect: "none" }}>"</div>
+      <section id="section-about" style={{ background: T.forest, padding: mobile ? "60px 24px" : "96px 40px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        {!mobile && <div style={{ position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)", fontFamily: "Georgia,serif", fontSize: 280, color: "rgba(176,124,40,0.05)", lineHeight: 1, pointerEvents: "none", userSelect: "none" }}>"</div>}
         <Fade>
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ width: 32, height: 1, background: T.brass, margin: "0 auto 32px", opacity: 0.6 }} />
-            <p style={{ fontFamily: "Georgia,serif", fontSize: "clamp(22px,3.5vw,34px)", color: "#F0EAE0", fontWeight: 400, fontStyle: "italic", maxWidth: 600, margin: "0 auto", lineHeight: 1.65 }}>
-              "The suit is the modern gentleman's armour,<br />and the Kingsman agents are the new knights."
+            <p style={{ fontFamily: "Georgia,serif", fontSize: "clamp(18px,3.5vw,34px)", color: "#F0EAE0", fontWeight: 400, fontStyle: "italic", maxWidth: 600, margin: "0 auto", lineHeight: 1.65 }}>
+              {mobile
+                ? <>"The suit is the modern gentleman's armour, and the Kingsman agents are the new knights."</>
+                : <>"The suit is the modern gentleman's armour,<br />and the Kingsman agents are the new knights."</>}
             </p>
             <div style={{ fontSize: 9, color: "rgba(176,124,40,0.6)", letterSpacing: 4, textTransform: "uppercase", marginTop: 32, fontWeight: 700 }}>— Kingsman: The Secret Service</div>
           </div>
@@ -448,14 +536,14 @@ function HomePage({ onStart }) {
       </section>
 
       {/* ── CTA ── */}
-      <section style={{ padding: "96px 40px", background: T.parchment, textAlign: "center" }}>
+      <section style={{ padding: mobile ? "60px 24px" : "96px 40px", background: T.parchment, textAlign: "center" }}>
         <Fade>
           <div style={{ fontSize: 9, color: T.brass, letterSpacing: 5, textTransform: "uppercase", fontWeight: 700, marginBottom: 16 }}>Begin Your Journey</div>
-          <h2 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(28px,4vw,48px)", color: T.ink, fontWeight: 400, marginBottom: 40, lineHeight: 1.2 }}>
+          <h2 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(26px,4vw,48px)", color: T.ink, fontWeight: 400, marginBottom: 36, lineHeight: 1.2 }}>
             Your Suit.<br /><em style={{ color: T.forest }}>Your Story.</em>
           </h2>
           <button onClick={onStart}
-            style={{ background: T.brass, border: "none", color: "#FFFFFF", padding: "18px 64px", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s", marginBottom: 20 }}
+            style={{ background: T.brass, border: "none", color: "#FFFFFF", padding: mobile ? "16px 36px" : "18px 64px", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s", marginBottom: 20, width: mobile ? "100%" : "auto" }}
             onMouseEnter={e => e.currentTarget.style.background = T.brassLight}
             onMouseLeave={e => e.currentTarget.style.background = T.brass}>
             Configure Your Bespoke Suit
@@ -465,13 +553,13 @@ function HomePage({ onStart }) {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: T.ink, padding: "48px 40px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
+      <footer style={{ background: T.ink, padding: mobile ? "36px 20px" : "48px 40px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", justifyContent: mobile ? "center" : "space-between", alignItems: "center", flexWrap: "wrap", gap: mobile ? 16 : 24, flexDirection: mobile ? "column" : "row" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 28, height: 28, border: `1px solid rgba(176,124,40,0.5)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia,serif", fontSize: 14, color: T.brass, fontWeight: 700, fontStyle: "italic" }}>K</div>
             <span style={{ fontFamily: "Georgia,serif", fontSize: 13, color: "rgba(240,234,224,0.5)", letterSpacing: 3 }}>KINGSMAN</span>
           </div>
-          <div style={{ display: "flex", gap: 32 }}>
+          <div style={{ display: "flex", gap: mobile ? 16 : 32, flexWrap: "wrap", justifyContent: "center" }}>
             {["Hand-Stitched", "Italian Fabrics", "Perfect Fit Guaranteed"].map(t => (
               <span key={t} style={{ fontSize: 9, color: "rgba(240,234,224,0.25)", letterSpacing: 2, textTransform: "uppercase" }}>{t}</span>
             ))}
@@ -486,6 +574,8 @@ function HomePage({ onStart }) {
 /* ═══════════ CONFIGURATOR ═══════════ */
 function ConfigPage({ config, setConfig, onNext }) {
   const [step, setStep] = useState(1);
+  const w = useWindowWidth();
+  const mobile = w < 768;
   const total = 6;
   const up = (k, v) => setConfig(p => ({ ...p, [k]: v }));
   const canGo = () => {
@@ -572,7 +662,7 @@ function ConfigPage({ config, setConfig, onNext }) {
           {BTN_TYPES.map(b => (<OptCard key={b.id} sel={config.buttonType === b.id} onClick={() => up("buttonType", b.id)} style={{ flex: 1, textAlign: "center", padding: 16 }}><div style={{ fontSize: 14, color: T.ink, fontWeight: 500 }}>{b.name}</div></OptCard>))}
         </div>
         <div style={{ fontSize: 10, color: T.text, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 16, fontWeight: 700 }}>Colour</div>
-        <div style={{ display: "flex", gap: 20, justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: mobile ? 14 : 20, justifyContent: "center", flexWrap: "wrap" }}>
           {BTN_COLORS.map(c => (
             <div key={c.id} onClick={() => up("buttonColor", c.id)} style={{ cursor: "pointer", textAlign: "center" }}>
               <div style={{ width: 44, height: 44, borderRadius: "50%", background: c.hex, margin: "0 auto 8px", border: config.buttonColor === c.id ? `2.5px solid ${T.brass}` : `2px solid ${T.border}`, boxShadow: config.buttonColor === c.id ? `0 0 0 3px ${T.brassDim}` : "none", transition: "all 0.25s" }} />
@@ -596,7 +686,7 @@ function ConfigPage({ config, setConfig, onNext }) {
             <div style={{ background: T.parchmentDeep, border: `1px solid ${T.border}`, padding: 24, textAlign: "center" }}>
               <div style={{ fontSize: 10, color: T.text, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>Enter Your Initials</div>
               <input type="text" maxLength={5} value={config.initials || ""} onChange={e => up("initials", e.target.value.toUpperCase())} placeholder="e.g. J.H.R."
-                style={{ width: 180, padding: 14, background: T.card, border: `1px solid ${T.border}`, color: T.brass, fontSize: 22, fontFamily: "Georgia,serif", letterSpacing: 4, textAlign: "center", outline: "none", fontStyle: "italic" }}
+                style={{ width: mobile ? "100%" : 180, padding: 14, background: T.card, border: `1px solid ${T.border}`, color: T.brass, fontSize: 22, fontFamily: "Georgia,serif", letterSpacing: 4, textAlign: "center", outline: "none", fontStyle: "italic" }}
                 onFocus={e => e.target.style.borderColor = T.brass} onBlur={e => e.target.style.borderColor = T.border} />
               <div style={{ fontSize: 11, color: T.muted, marginTop: 12 }}>Brass thread on the inner lining</div>
             </div>
@@ -621,13 +711,30 @@ function ConfigPage({ config, setConfig, onNext }) {
     );
   };
 
+  const suitPreview = (
+    <div style={{
+      background: T.forest,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      padding: mobile ? "20px 16px" : "48px 24px",
+      borderRight: !mobile ? `1px solid rgba(255,255,255,0.06)` : "none",
+      borderBottom: mobile ? `1px solid rgba(255,255,255,0.06)` : "none",
+    }}>
+      <SuitVisual config={config} size={mobile ? 150 : 260} />
+      <div style={{ marginTop: mobile ? 12 : 28, textAlign: "center" }}>
+        <div style={{ fontSize: 9, color: "rgba(176,124,40,0.6)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4, fontWeight: 700 }}>Preview</div>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 14 : 18, color: "#F0EAE0", fontWeight: 500 }}>{DESIGNS.find(d => d.id === config.design)?.name || "Your Suit"}</div>
+        {!mobile && config.suitType && <div style={{ fontSize: 11, color: "rgba(240,234,224,0.4)", marginTop: 4 }}>{SUIT_TYPES.find(s => s.id === config.suitType)?.name}{config.material && ` · ${MATERIALS.find(m => m.id === config.material)?.name}`}</div>}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ paddingTop: 60, minHeight: "100vh", background: T.parchment }}>
       <div style={{ height: 3, background: T.border }}><div style={{ height: 3, background: `linear-gradient(90deg, ${T.forest}, ${T.forestLight})`, width: `${(step / total) * 100}%`, transition: "width 0.5s cubic-bezier(.22,1,.36,1)" }} /></div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "14px 24px", borderBottom: `1px solid ${T.border}`, background: T.card }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "14px 16px", borderBottom: `1px solid ${T.border}`, background: T.card, overflowX: "auto" }}>
         {Array.from({ length: total }, (_, i) => (
           <div key={i} onClick={() => i + 1 < step && setStep(i + 1)} style={{
-            width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700,
+            width: 30, height: 30, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700,
             color: i + 1 === step ? "#FFF" : i + 1 < step ? T.brass : T.muted,
             background: i + 1 === step ? T.forest : i + 1 < step ? T.brassDim : "transparent",
             border: `1px solid ${i + 1 === step ? T.forest : i + 1 < step ? T.brass : T.border}`,
@@ -635,23 +742,34 @@ function ConfigPage({ config, setConfig, onNext }) {
           }}>{i + 1 < step ? "✓" : i + 1}</div>
         ))}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", minHeight: "calc(100vh - 113px)" }}>
-        <div style={{ flex: "1 1 300px", minWidth: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", background: T.forest, borderRight: `1px solid rgba(255,255,255,0.06)` }}>
-          <SuitVisual config={config} size={260} />
-          <div style={{ marginTop: 28, textAlign: "center" }}>
-            <div style={{ fontSize: 9, color: "rgba(176,124,40,0.6)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 6, fontWeight: 700 }}>Preview</div>
-            <div style={{ fontFamily: "Georgia,serif", fontSize: 18, color: "#F0EAE0", fontWeight: 500 }}>{DESIGNS.find(d => d.id === config.design)?.name || "Your Suit"}</div>
-            {config.suitType && <div style={{ fontSize: 11, color: "rgba(240,234,224,0.4)", marginTop: 4 }}>{SUIT_TYPES.find(s => s.id === config.suitType)?.name}{config.material && ` · ${MATERIALS.find(m => m.id === config.material)?.name}`}</div>}
+
+      {/* Mobile: preview on top, form below */}
+      {mobile ? (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {suitPreview}
+          <div style={{ padding: "28px 20px", background: T.parchment }}>
+            {renderStep()}
+            <div style={{ display: "flex", gap: 12, marginTop: 32, justifyContent: "space-between" }}>
+              {step > 1 ? <BtnGhost onClick={() => setStep(step - 1)}>← Back</BtnGhost> : <div />}
+              <BtnPrimary onClick={next} disabled={!canGo()}>{step === total ? "Measurements →" : "Continue →"}</BtnPrimary>
+            </div>
           </div>
         </div>
-        <div style={{ flex: "1 1 380px", padding: "40px 36px", maxWidth: 520, background: T.parchment }}>
-          {renderStep()}
-          <div style={{ display: "flex", gap: 12, marginTop: 40, justifyContent: "space-between" }}>
-            {step > 1 ? <BtnGhost onClick={() => setStep(step - 1)}>← Back</BtnGhost> : <div />}
-            <BtnPrimary onClick={next} disabled={!canGo()}>{step === total ? "Measurements →" : "Continue →"}</BtnPrimary>
+      ) : (
+        /* Desktop: side-by-side */
+        <div style={{ display: "flex", minHeight: "calc(100vh - 113px)" }}>
+          <div style={{ flex: "1 1 300px", minWidth: 260 }}>
+            {suitPreview}
+          </div>
+          <div style={{ flex: "1 1 380px", padding: "40px 36px", maxWidth: 520, background: T.parchment }}>
+            {renderStep()}
+            <div style={{ display: "flex", gap: 12, marginTop: 40, justifyContent: "space-between" }}>
+              {step > 1 ? <BtnGhost onClick={() => setStep(step - 1)}>← Back</BtnGhost> : <div />}
+              <BtnPrimary onClick={next} disabled={!canGo()}>{step === total ? "Measurements →" : "Continue →"}</BtnPrimary>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -661,11 +779,13 @@ function MeasurePage({ measurements: m, setMeasurements: setM, onNext, onBack })
   const [body, setBody] = useState({ age: "", height: "", weight: "" });
   const [phase, setPhase] = useState("body");
   const [loading, setLoading] = useState(false);
+  const w = useWindowWidth();
+  const mobile = w < 768;
   const estimate = () => {
     setLoading(true);
     setTimeout(() => {
-      const h = parseFloat(body.height) || 175, w = parseFloat(body.weight) || 78;
-      const bmi = w / ((h / 100) ** 2);
+      const h = parseFloat(body.height) || 175, wt = parseFloat(body.weight) || 78;
+      const bmi = wt / ((h / 100) ** 2);
       const ch = bmi < 22 ? 37 : bmi < 26 ? 40 : 43;
       const wa = bmi < 22 ? 31 : bmi < 26 ? 34 : 38;
       setM({ chest: String(ch), waist: String(wa), shoulders: String(Math.round(17 + (h - 165) * 0.06)), sleeve: String(Math.round(24 + (h - 165) * 0.08)), jacket: String(Math.round(28 + (h - 165) * 0.1)), inseam: String(Math.round(29 + (h - 165) * 0.12)) });
@@ -675,7 +795,7 @@ function MeasurePage({ measurements: m, setMeasurements: setM, onNext, onBack })
   return (
     <div style={{ paddingTop: 60, minHeight: "100vh", background: T.parchment }}>
       <div style={{ height: 3, background: T.border }}><div style={{ height: 3, background: T.forest, width: phase === "body" ? "50%" : "100%", transition: "width 0.5s" }} /></div>
-      <div style={{ maxWidth: 540, margin: "0 auto", padding: "52px 24px" }}>
+      <div style={{ maxWidth: 540, margin: "0 auto", padding: mobile ? "36px 20px" : "52px 24px" }}>
         {phase === "body" && (
           <Fade key="body">
             <div style={{ fontSize: 9, color: T.brass, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8, fontWeight: 700 }}>Step A</div>
@@ -707,16 +827,16 @@ function MeasurePage({ measurements: m, setMeasurements: setM, onNext, onBack })
               <span style={{ fontSize: 14, color: T.brass }}>✦</span>
               <span style={{ fontSize: 12, color: T.brass, lineHeight: 1.6 }}>Estimated based on your profile. Fine-tune with a tape measure.</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: mobile ? 10 : 12 }}>
               {MEASURE_FIELDS.map(f => (
-                <div key={f.id} style={{ background: T.card, border: `1px solid ${T.border}`, padding: 16 }}>
+                <div key={f.id} style={{ background: T.card, border: `1px solid ${T.border}`, padding: mobile ? 12 : 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
                     <span style={{ fontSize: 10, color: T.text, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700 }}>{f.label}</span>
                     <span style={{ fontSize: 12, color: T.muted, opacity: 0.4 }}>{f.icon}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <input type="number" value={m[f.id] || ""} onChange={e => setM(p => ({ ...p, [f.id]: e.target.value }))} placeholder={f.range}
-                      style={{ width: "100%", padding: 10, background: T.parchmentDeep, border: `1px solid ${T.border}`, color: T.ink, fontSize: 17, fontFamily: "Georgia,serif", textAlign: "center", outline: "none" }}
+                      style={{ width: "100%", padding: mobile ? 8 : 10, background: T.parchmentDeep, border: `1px solid ${T.border}`, color: T.ink, fontSize: mobile ? 15 : 17, fontFamily: "Georgia,serif", textAlign: "center", outline: "none" }}
                       onFocus={e => e.target.style.borderColor = T.brass} onBlur={e => e.target.style.borderColor = T.border} />
                     <span style={{ fontSize: 11, color: T.muted }}>in</span>
                   </div>
@@ -740,20 +860,22 @@ function CheckoutPage({ config, onBack }) {
   const [card, setCard] = useState({ number: "", expiry: "", cvc: "" });
   const [done, setDone] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const w = useWindowWidth();
+  const mobile = w < 768;
   const canSubmit = ship.name.trim() && ship.email.trim() && ship.address.trim();
   const submit = () => { if (!canSubmit) return; setProcessing(true); setTimeout(() => { setProcessing(false); setDone(true); }, 1800); };
 
   if (done) return (
-    <div style={{ paddingTop: 60, minHeight: "100vh", background: T.parchment, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
-      <div style={{ textAlign: "center", maxWidth: 440 }}>
+    <div style={{ paddingTop: 60, minHeight: "100vh", background: T.parchment, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
+      <div style={{ textAlign: "center", maxWidth: 440, width: "100%" }}>
         <Fade delay={200}>
           <div style={{ width: 80, height: 80, border: `2px solid ${T.forest}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px", fontSize: 34, color: T.forest, animation: "kpulse 2s ease-in-out infinite" }}>✓</div>
           <style>{`@keyframes kpulse { 0%,100%{box-shadow:0 0 0 0 rgba(14,35,24,0)} 50%{box-shadow:0 0 0 16px rgba(14,35,24,0.06)} }`}</style>
         </Fade>
-        <Fade delay={400}><h2 style={{ fontFamily: "Georgia,serif", fontSize: 36, color: T.ink, fontWeight: 500, marginBottom: 12 }}>Order Confirmed</h2></Fade>
+        <Fade delay={400}><h2 style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 28 : 36, color: T.ink, fontWeight: 500, marginBottom: 12 }}>Order Confirmed</h2></Fade>
         <Fade delay={600}><p style={{ fontSize: 14, color: T.text, lineHeight: 1.9, marginBottom: 36 }}>Thank you for choosing bespoke. You'll receive a WhatsApp confirmation shortly.</p></Fade>
         <Fade delay={800}>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: "24px 28px", textAlign: "left" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: mobile ? "20px 16px" : "24px 28px", textAlign: "left" }}>
             <div style={{ fontSize: 9, color: T.brass, letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 16, fontWeight: 700 }}>Order Summary</div>
             {[["Suit", SUIT_TYPES.find(s => s.id === config.suitType)?.name], ["Material", MATERIALS.find(mm => mm.id === config.material)?.name], ["Design", DESIGNS.find(d => d.id === config.design)?.name], ["Buttons", `${config.buttonType} — ${config.buttonColor}`], ...(config.initials ? [["Monogram", config.initials]] : []), ["Trousers", `${PANTS_STYLES.find(p => p.id === config.pantsStyle)?.name} · ${config.pantsFit}`]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}>
@@ -775,7 +897,7 @@ function CheckoutPage({ config, onBack }) {
   return (
     <div style={{ paddingTop: 60, minHeight: "100vh", background: T.parchment }}>
       <div style={{ height: 3, background: T.brass }} />
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "52px 24px" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "32px 20px" : "52px 24px" }}>
         <Fade>
           <div style={{ fontSize: 9, color: T.brass, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8, fontWeight: 700 }}>Final Step</div>
           <h2 style={{ fontFamily: "Georgia,serif", fontSize: 26, color: T.ink, marginBottom: 6, fontWeight: 500 }}>Delivery Details</h2>
@@ -783,11 +905,11 @@ function CheckoutPage({ config, onBack }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <InputField label="Full Name *" value={ship.name} onChange={v => setShip(p => ({ ...p, name: v }))} placeholder="James Harrison" />
             <InputField label="Shipping Address *" value={ship.address} onChange={v => setShip(p => ({ ...p, address: v }))} placeholder="11 Savile Row, Mayfair" />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 14 }}>
               <InputField label="Country" value={ship.country} onChange={v => setShip(p => ({ ...p, country: v }))} placeholder="United Kingdom" />
               <InputField label="Postal Code" value={ship.postal} onChange={v => setShip(p => ({ ...p, postal: v }))} placeholder="W1S 3PR" />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 14 }}>
               <InputField label="Phone" value={ship.phone} onChange={v => setShip(p => ({ ...p, phone: v }))} placeholder="+44 7700 900000" type="tel" />
               <InputField label="Email *" value={ship.email} onChange={v => setShip(p => ({ ...p, email: v }))} placeholder="james@example.com" type="email" />
             </div>
@@ -809,7 +931,7 @@ function CheckoutPage({ config, onBack }) {
               </div>
             </div>
           </div>
-          <div style={{ background: T.parchmentDeep, border: `1px solid ${T.border}`, padding: "20px 24px", marginTop: 32 }}>
+          <div style={{ background: T.parchmentDeep, border: `1px solid ${T.border}`, padding: mobile ? "16px 18px" : "20px 24px", marginTop: 32 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontSize: 9, color: T.brass, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4, fontWeight: 700 }}>Total</div>
